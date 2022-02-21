@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Animated, TouchableOpacity } from "react-native";
+import React, { useRef } from "react";
+import { Animated, PanResponder } from "react-native";
 import styled from "styled-components/native";
 
 const Container = styled.View`
@@ -8,7 +8,7 @@ const Container = styled.View`
   align-items: center;
 `;
 
-const Box = styled.TouchableOpacity`
+const Box = styled.View`
   background-color: tomato;
   width: 200px;
   height: 200px;
@@ -17,18 +17,53 @@ const Box = styled.TouchableOpacity`
 const AnimatedBox = Animated.createAnimatedComponent(Box);
 
 export default function App() {
-  const Y = new Animated.Value(0);
-  const moveUp = () => {
-    Animated.timing(Y, {
-      toValue: 200,
-    });
-  };
+  const position = useRef(
+    new Animated.ValueXY({
+      x: 0,
+      y: 0,
+    })
+  ).current;
+
+  const borderRadius = position.y.interpolate({
+    inputRange: [-300, 300],
+    outputRange: [100, 0],
+  });
+  const rotation = position.y.interpolate({
+    inputRange: [-300, 300],
+    outputRange: ["-360deg", "360deg"],
+  });
+  const bgColor = position.y.interpolate({
+    inputRange: [-300, 300],
+    outputRange: ["rgb(255, 99, 71)", "rgb(71, 166, 255)"],
+  });
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        position.setOffset({
+          x: position.x._value,
+          y: position.y._value,
+        });
+      },
+      onPanResponderMove: (_, { dx, dy }) => {
+        position.setValue({
+          x: dx,
+          y: dy,
+        });
+      },
+      onPanResponderRelease: () => {
+        position.flattenOffset();
+      },
+    })
+  ).current;
   return (
     <Container>
-      <Box
-        onPress={moveUp}
+      <AnimatedBox
+        {...panResponder.panHandlers}
         style={{
-          transform: [{ translateY: Y }],
+          borderRadius,
+          backgroundColor: bgColor,
+          transform: position.getTranslateTransform(),
         }}
       />
     </Container>
